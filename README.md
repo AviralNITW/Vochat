@@ -15,10 +15,9 @@ VoChat is an enterprise-grade, voice-first ephemeral social and real-time messag
 7. [Directory Structure](#directory-structure)
 8. [API Reference](#api-reference)
 9. [WebSocket Event System](#websocket-event-system)
-10. [Environment Variables](#environment-variables)
-11. [Installation and Setup](#installation-and-setup)
-12. [Security and Privacy](#security-and-privacy)
-13. [License](#license)
+10. [Installation and Setup](#installation-and-setup)
+11. [Security and Privacy](#security-and-privacy)
+12. [License](#license)
 
 ---
 
@@ -28,49 +27,66 @@ The following UML component and deployment diagram illustrates the system archit
 
 ```mermaid
 graph TD
+    %% Custom Vibrant Color Classes
+    classDef clientStyle fill:#1e40af,stroke:#60a5fa,stroke-width:2px,color:#ffffff;
+    classDef gatewayStyle fill:#5b21b6,stroke:#a78bfa,stroke-width:2px,color:#ffffff;
+    classDef serviceStyle fill:#065f46,stroke:#34d399,stroke-width:2px,color:#ffffff;
+    classDef realtimeStyle fill:#9a3412,stroke:#fb923c,stroke-width:2px,color:#ffffff;
+    classDef dbStyle fill:#831843,stroke:#f472b6,stroke-width:2px,color:#ffffff;
+    classDef workerStyle fill:#374151,stroke:#9ca3af,stroke-width:2px,color:#ffffff;
+    classDef cloudStyle fill:#075985,stroke:#38bdf8,stroke-width:2px,color:#ffffff;
+
     subgraph Client_Layer ["Mobile Client Layer (React Native / Expo SDK 54)"]
-        UI["UI / Presentation Layer\n(Expo Router, Reanimated, Native Screens)"]
-        AudioEngine["Audio Subsystem\n(Expo-AV Recording & Playback, Rate/Pitch Filter Engine)"]
-        SocketClient["Socket.io Client\n(Real-Time Messaging & Status)"]
-        ApiClient["HTTP / REST Client\n(Axios Interceptor, SecureStore Token)"]
+        UI["UI & Presentation Engine\n(Expo Router, Reanimated, Screens)"]:::clientStyle
+        AudioEngine["Audio Subsystem\n(Expo-AV Recording, Rate/Pitch Modulation)"]:::clientStyle
+        SocketClient["Socket.io Client\n(Real-Time Messaging & Status)"]:::clientStyle
+        ApiClient["HTTP / REST Client\n(Axios Interceptor, SecureStore Token)"]:::clientStyle
     end
 
-    subgraph Gateway_Layer ["API Gateway & Middleware Layer (Express 5)"]
-        Router["Express Router & Route Handlers"]
-        AuthMiddleware["Authentication & JWT Guard"]
-        RateLimiter["Rate Limiting & Security\n(Helmet, Express Rate Limit)"]
-        ValidationMiddleware["Input Validation Layer\n(Zod Schemas)"]
-        UploadMiddleware["Media Upload Handler\n(Multer & Streamifier)"]
+    subgraph Gateway_Layer ["API Gateway & Security Layer (Express 5)"]
+        Router["Express Router & Route Handlers"]:::gatewayStyle
+        AuthMiddleware["Authentication & JWT Guard"]:::gatewayStyle
+        RateLimiter["Rate Limiting & Security\n(Helmet, Express Rate Limit)"]:::gatewayStyle
+        ValidationMiddleware["Input Validation Layer\n(Zod Schemas)"]:::gatewayStyle
+        UploadMiddleware["Media Upload Handler\n(Multer & Streamifier)"]:::gatewayStyle
     end
 
     subgraph Service_Layer ["Backend Domain Modules"]
-        AuthModule["Auth Module (OTP, Email Verification, Passwords)"]
-        UserModule["User & Profile Module (Audio Bios, Privacy)"]
-        MessageModule["Ephemeral Messaging Module (Expiry Logic)"]
-        StoryModule["Stories Module (24h Window, View Tracking)"]
-        PostModule["Audio Posts Module (Likes, Comments, Bookmarks)"]
-        StreakModule["Streak Engine (Daily Activity, Freeze Logic)"]
-        NotificationModule["Push Notification Engine (FCM)"]
+        AuthModule["Auth Module\n(OTP, Verification, Passwords)"]:::serviceStyle
+        UserModule["User & Profile Module\n(Audio Bios, Privacy Settings)"]:::serviceStyle
+        MessageModule["Ephemeral Messaging Module\n(24h Auto-Expiry Engine)"]:::serviceStyle
+        StoryModule["Stories Module\n(24h Window, View Tracking)"]:::serviceStyle
+        PostModule["Audio Posts Module\n(Likes, Comments, Bookmarks)"]:::serviceStyle
+        StreakModule["Streak Engine\n(Daily Activity, Freeze Logic)"]:::serviceStyle
+        NotificationModule["Push Notification Engine\n(FCM Dispatcher)"]:::serviceStyle
     end
 
-    subgraph RealTime_Layer ["Real-Time Gateway"]
-        SocketServer["Socket.io Server"]
-        PresenceManager["Presence & Connection Tracker"]
-        RoomManager["Direct Message & Channel Rooms"]
+    subgraph RealTime_Layer ["Real-Time Socket Gateway"]
+        SocketServer["Socket.io Server Engine"]:::realtimeStyle
+        PresenceManager["Presence & Live Connection Tracker"]:::realtimeStyle
+        RoomManager["Direct Messaging & Channel Rooms"]:::realtimeStyle
     end
 
     subgraph Background_Workers ["Background Job Engine"]
-        CronCleanup["Node-Cron Expiry Service\n(Ephemeral Message & Story Purge)"]
+        CronCleanup["Node-Cron Expiry Service\n(Ephemeral Message & Story Purge)"]:::workerStyle
     end
 
     subgraph Persistence_Layer ["Data & Cloud Storage Services"]
-        PrismaORM["Prisma ORM Layer (Prisma Client v7)"]
-        PostgresDB[("PostgreSQL Relational Database")]
-        CloudMedia[("Cloudinary / Firebase Storage\n(Audio Files & Media)")]
-        FCM["Firebase Cloud Messaging (FCM Push Service)"]
+        PrismaORM["Prisma ORM Layer (Prisma Client v7)"]:::dbStyle
+        PostgresDB[("PostgreSQL Relational Database")]:::dbStyle
+        CloudMedia[("Cloudinary Media Storage\n(Audio Files & Assets)")]:::cloudStyle
+        FCM["Firebase Cloud Messaging\n(Push Notification Service)"]:::cloudStyle
     end
 
-    %% Client to Gateway connections
+    %% Subgraph Container Styling
+    style Client_Layer fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
+    style Gateway_Layer fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#c4b5fd
+    style Service_Layer fill:#062e24,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    style RealTime_Layer fill:#431407,stroke:#f97316,stroke-width:2px,color:#fdba74
+    style Persistence_Layer fill:#500724,stroke:#ec4899,stroke-width:2px,color:#f472b6
+    style Background_Workers fill:#1f2937,stroke:#9ca3af,stroke-width:2px,color:#e5e7eb
+
+    %% Data Flow Connections
     UI --> AudioEngine
     UI --> ApiClient
     UI --> SocketClient
@@ -79,12 +95,10 @@ graph TD
     AuthMiddleware --> ValidationMiddleware
     ValidationMiddleware --> Router
 
-    %% Client to Real-Time
     SocketClient <--> SocketServer
     SocketServer --> PresenceManager
     SocketServer --> RoomManager
 
-    %% Gateway to Modules
     Router --> AuthModule
     Router --> UserModule
     Router --> MessageModule
@@ -94,7 +108,6 @@ graph TD
     Router --> NotificationModule
     UploadMiddleware --> CloudMedia
 
-    %% Module to Persistence
     AuthModule --> PrismaORM
     UserModule --> PrismaORM
     MessageModule --> PrismaORM
@@ -104,7 +117,6 @@ graph TD
     NotificationModule --> FCM
     PrismaORM --> PostgresDB
 
-    %% Cron Tasks
     CronCleanup --> PrismaORM
 ```
 
@@ -495,45 +507,6 @@ The real-time service runs over Socket.io and facilitates instant interaction di
 
 ---
 
-## Environment Variables
-
-### Backend Configuration (`vochat-backend/.env`)
-
-```ini
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# Database Connection (PostgreSQL)
-DATABASE_URL="postgresql://username:password@localhost:5432/vochat?schema=public"
-
-# Authentication Security
-JWT_SECRET="your-256-bit-secret-key-here"
-JWT_EXPIRES_IN="7d"
-
-# Media Storage (Cloudinary)
-CLOUDINARY_CLOUD_NAME="your_cloud_name"
-CLOUDINARY_API_KEY="your_api_key"
-CLOUDINARY_API_SECRET="your_api_secret"
-
-# Firebase Cloud Messaging
-FIREBASE_PROJECT_ID="your-firebase-project-id"
-FIREBASE_CLIENT_EMAIL="firebase-adminsdk@project.iam.gserviceaccount.com"
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgk..."
-FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
-
-# Network & Rate Limiting
-CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX=100
-
-# Cleanup Timers
-MESSAGE_EXPIRY_HOURS=24
-CLEANUP_CRON_INTERVAL="*/5 * * * *"
-```
-
----
-
 ## Installation and Setup
 
 ### Prerequisites
@@ -555,9 +528,8 @@ cd vochat-backend
 # Install dependencies
 npm install
 
-# Configure environment variables
+# Setup environment variables from template
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials, Cloudinary, and JWT secrets
 
 # Run database migrations and generate Prisma Client
 npx prisma generate
