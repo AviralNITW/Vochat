@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json.log
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Expo & Metro
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs & Debugging
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Prisma generated
+generated/prisma/
+prisma/migrations/dev.db
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Android / iOS generated builds
+/vochat-android/android/
+/vochat-android/ios/
+.kotlin/

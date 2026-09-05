@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  name             String
+  username         String        @unique
+  email            String        @unique
+  password         String
+  avatarUrl        String?
+  isOnline         Boolean       @default(false)
+  lastSeen         DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  audioBioUrl      String?
+  textBio          String?
+  otp              String?
+  otpExpires       DateTime?
+  isVerified       Boolean       @default(false)
+  isPrivate        Boolean       @default(false) // Privacy Mode
+  
+  deviceTokens     DeviceToken[]
+  friendsReceived  Friendship[]  @relation("receiver")
+  friendsInitiated Friendship[]  @relation("initiator")
+  mediaFiles       Media[]
+  receivedMessages Message[]     @relation("receiver")
+  sentMessages     Message[]     @relation("sender")
+  posts            Post[]
+  likes            Like[]
+  comments         Comment[]
+  bookmarks        Bookmark[]
+  stories          Story[]
+  storyViews       StoryView[]
+  
+  // Follows
+  followers        Follow[]      @relation("following")
+  following        Follow[]      @relation("follower")
+  
+  // Streaks
+  streaksAsUser1   Streak[]      @relation("streakUser1")
+  streaksAsUser2   Streak[]      @relation("streakUser2")
+
+  @@index([email])
+  @@index([username])
+  @@index([name])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Friendship {
+  id        String           @id @default(uuid())
+  userId    String
+  friendId  String
+  createdAt DateTime         @default(now())
+  status    FriendshipStatus @default(PENDING)
+  updatedAt DateTime         @updatedAt
+  
+  friend    User             @relation("receiver", fields: [friendId], references: [id], onDelete: Cascade)
+  user      User             @relation("initiator", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+  @@index([status])
+}
+
+model Message {
+  id         String    @id @default(uuid())
+  senderId   String
+  receiverId String
+  audioUrl   String
+  mediaId    String?
+  duration   Int       @default(0)
+  caption    String?
+  voiceFilter String?   // Applied voice filter effect
+  isPlayed   Boolean   @default(false)
+  playedAt   DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  
+  media      Media?    @relation(fields: [mediaId], references: [id])
+  receiver   User      @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User      @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@index([senderId, receiverId])
+}
+
+model Post {
+  id          String     @id @default(uuid())
+  userId      String
+  audioUrl    String
+  duration    Int        @default(0)
+  caption     String?
+  voiceFilter String?    // Applied voice filter effect
+  audience    String     @default("ALL") // "ALL" (Public) vs "FRIENDS" (Private)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes       Like[]
+  comments    Comment[]
+  bookmarks   Bookmark[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Story {
+  id          String      @id @default(uuid())
+  userId      String
+  audioUrl    String
+  duration    Int         @default(0)
+  caption     String?
+  voiceFilter String?     // Applied voice filter effect
+  createdAt   DateTime    @default(now())
+  expiresAt   DateTime    // Ephemeral (expires in 24h)
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views       StoryView[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id        String   @id @default(uuid())
+  storyId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@index([userId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  text      String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Streak {
+  id                  String   @id @default(uuid())
+  user1Id             String
+  user2Id             String
+  streakCount         Int      @default(0)
+  streakFreezeUsed    Boolean  @default(false)
+  user1Interacted     Boolean  @default(false)
+  user2Interacted     Boolean  @default(false)
+  lastInteractionDate DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  user1               User     @relation("streakUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2               User     @relation("streakUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+}
+
+model Media {
+  id        String    @id @default(uuid())
+  userId    String
+  filePath  String
+  fileSize  Int
+  duration  Int
+  mimeType  String
+  createdAt DateTime  @default(now())
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId])
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
