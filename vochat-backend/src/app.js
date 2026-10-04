@@ -12,6 +12,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 // Config
 const config = require('./config/env');
@@ -60,6 +61,9 @@ initCronJobs();
 // Security headers
 app.use(helmet());
 
+// Gzip response compression
+app.use(compression());
+
 // CORS - configured for both web frontend and Android app
 app.use(cors({
   origin: (origin, callback) => {
@@ -88,7 +92,7 @@ app.use(morgan('dev', {
 }));
 
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads'), { maxAge: '30d' }));
 
 // Rate limiting
 app.use(generalLimiter);
